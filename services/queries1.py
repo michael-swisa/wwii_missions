@@ -40,8 +40,8 @@ def run_query_and_explain(query):
 def main():
     create_indexes()
 
-    # First query to get the most active air force in 1942
-    query1 = """
+
+    query1 = f"""
     SELECT 
         air_force, 
         target_city,
@@ -49,7 +49,7 @@ def main():
     FROM 
         mission
     WHERE 
-        EXTRACT(YEAR FROM mission_date) = 1942
+        EXTRACT(YEAR FROM mission_date) = %s
     GROUP BY 
         air_force, 
         target_city

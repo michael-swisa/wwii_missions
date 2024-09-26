@@ -25,85 +25,87 @@ def create_indexes():
         pass
 
 
-def run_query_and_explain(query):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+def get_air_force_missions_by_city(year):
+    query = """
+        SELECT 
+            m.air_force,
+            COUNT(m.mission_id) AS number_of_missions
+        FROM 
+            mission m
+        WHERE 
+            EXTRACT(YEAR FROM m.mission_date) = %s
+            AND m.air_force IS NOT NULL
+        GROUP BY 
+            m.air_force
+        ORDER BY 
+            number_of_missions DESC
+        LIMIT 1;
+        """
+
     try:
-        # Run the query with EXPLAIN ANALYZE
-        cursor.execute("EXPLAIN ANALYZE " + query)
-        explain_result = cursor.fetchall()
-        return explain_result
-    finally:
-        pass
+        conn = get_db_connection()
+        cur = conn.cursor()
 
+        cur.execute(query, (year,))
 
-def main():
-    create_indexes()
+        result = cur.fetchone()
 
+        if result:
+            air_force, number_of_missions = result
+            most_active_air_force = {
+                'air_force': air_force,
+                'number_of_missions': number_of_missions
+            }
+        else:
+            most_active_air_force = {
+                'air_force': None,
+                'number_of_missions': 0
+            }
 
-    query1 = f"""
-    SELECT 
-        air_force, 
-        target_city,
-        COUNT(mission_id) AS mission_count
-    FROM 
-        mission
-    WHERE 
-        EXTRACT(YEAR FROM mission_date) = %s
-    GROUP BY 
-        air_force, 
-        target_city
-    ORDER BY 
-        mission_count DESC
-    LIMIT 1;
-    """
+        cur.close()
+        conn.close()
 
-    # Second query to get the maximum bomb damage assessment for bombing missions
-    query2 = """
-    SELECT 
-            "target_country", 
-            MAX("bomb_damage_assessment") AS max_damage
+        return most_active_air_force
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+def get_average_damage_by_country():
+    query = """
+        SELECT 
+            country,
+            AVG(CAST(bomb_damage_assessment AS NUMERIC)) AS average_damage
         FROM 
             mission
         WHERE 
-            CAST("airborne_aircraft" AS NUMERIC) > 5 
-            AND "bomb_damage_assessment" IS NOT NULL
+            airborne_aircraft > 5
         GROUP BY 
-            "target_country"
-        limit 1 
+            country;
     """
 
-    # Execute the queries with EXPLAIN ANALYZE
-    explain_result1 = run_query_and_explain(query1)
-    explain_result2 = run_query_and_explain(query2)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    # Document the findings in a text file
-    with open('results.txt', 'w') as f:
-        f.write("### Query Performance Documentation ###\n\n")
+        cursor.execute(query)
+        results = cursor.fetchall()
 
-        f.write("1. Performance of the queries after index creation:\n")
-        f.write("   - Query 1: \n")
-        for row in explain_result1:
-            f.write(f"     {row}\n")
+        average_damage_by_country = [
+            {'country': row[0], 'average_damage': row[1]}
+            for row in results
+        ]
 
-        f.write("   - Query 2: \n")
-        for row in explain_result2:
-            f.write(f"     {row}\n")
+        cursor.close()
+        conn.close()
 
-        f.write("\n2. Created indexes:\n")
-        f.write("   - idx_mission_date on mission(mission_date)\n")
-        f.write("   - idx_air_force on mission(air_force)\n")
-        f.write("   - idx_target_city on mission(target_city)\n")
-        f.write("   - idx_airborne_aircraft on mission(\"Airborne Aircraft\")\n")
-        f.write("   - idx_bomb_damage_assessment on mission(\"Bomb Damage Assessment\")\n")
-        f.write("   - idx_target_country on mission(\"Target Country\")\n")
-        f.write("   - idx_air_force_target_city on mission(air_force, target_city)\n")
-        f.write("   - idx_airborne_bomb_damage on mission(\"Airborne Aircraft\", \"Bomb Damage Assessment\")\n")
+        return average_damage_by_country
 
-        f.write("\n3. Explanation of the results:\n")
-        f.write(
-            "   - The query results improved because the created indexes allow the database to search quickly based on the selected columns.\n")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
 
 
 if __name__ == "__main__":
-    main()
+    print(get_air_force_missions_by_city(1942))

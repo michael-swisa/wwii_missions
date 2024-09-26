@@ -3,5 +3,6 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/services/normal_service.py" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/services/queries.py" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/services/service_mission.py" dialect="PostgreSQL" />
   </component>
 </project>

@@ -1,4 +1,5 @@
 import psycopg2
+from flask_sqlalchemy import SQLAlchemy
 
 def get_db_connection():
     connection = psycopg2.connect(
@@ -9,3 +10,5 @@ def get_db_connection():
         port="5432"
     )
     return connection
+
+db = SQLAlchemy()
